@@ -25,6 +25,16 @@ public class ClientDatabase {
 			clientDb.get(username).setClientSocket(socket);
 		}
 	}
+
+	static void updateSocketIfExists(ClientDetails client, Socket socket) {
+		if (exists(client.getUsername())) {
+			clientDb.get(client.getUsername()).setClientSocket(socket);
+		}
+	}
+
+	static ClientDetails getClient(String username) {
+		return clientDb.get(username);
+	}
 }
 
 
