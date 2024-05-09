@@ -11,10 +11,10 @@ public class TCPServer {
         return System.currentTimeMillis()+1000;
     }
     public static void main(String[] args) throws InterruptedException {
-        Queue<ClientDetails> preQueue = new LinkedList<>();
+        ArrayList<ClientDetails> preQueue = new ArrayList<>();
         Queue<ClientDetails> FIFOQueue = new LinkedList<>();
         QueueManager queueManager;
-        long startTime = System.currentTimeMillis()+1000;
+        long startTime = System.currentTimeMillis()+10000;
 
 		
         
@@ -25,14 +25,18 @@ public class TCPServer {
             int serverPort = 6789;
             ServerSocket listenSocket = new ServerSocket(serverPort);
             System.out.println("Server is running...");
+            int loopCounter = 0;
             while (true) {
-                ClientDetails client = new ClientDetails();
-                client.setClientSocket(listenSocket.accept());
-                Auth a = new Auth(client, listenSocket, passDb);
+                System.out.println("Current Loop: " + loopCounter);
+                loopCounter++;
+                Socket clientSocket = (listenSocket.accept());
+                Auth a = new Auth(clientSocket, listenSocket, passDb);
                 a.join();
-                System.out.println(client.isAuthenticated());
+                ClientDetails client = ClientDatabase.getClient(a.getUsername());
+                System.out.println("Current client: " + client.getUsername());
+                System.out.println("Current socket: " + client.getClientSocket());
                 
-                if (client.isAuthenticated()) {
+                if (a.authenticate() && client.getStep() == 0) {
                     preQueue.add(client);
                     // Thread.sleep(3000);
                 }

@@ -4,7 +4,10 @@ class ClientDetails {
 	String username;
 	String password;
 	Socket clientSocket;
-	
+	/*
+	step 0: new client
+	step 1: entered Q
+	step 2-n: event step */
 	int eventStep = 0;
 	String eventInfo = "";
 

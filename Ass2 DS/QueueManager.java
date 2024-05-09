@@ -3,9 +3,10 @@ import java.net.*; import java.io.*;
 
 class QueueManager {
 	//arraylist?
-	Queue<ClientDetails> preQueue, FIFOQueue;
+	ArrayList<ClientDetails> preQueue;
+	Queue<ClientDetails> FIFOQueue;
 	
-	public QueueManager (Queue<ClientDetails> preQueue, Queue<ClientDetails> FIFOQueue) {
+	public QueueManager (ArrayList<ClientDetails> preQueue, Queue<ClientDetails> FIFOQueue) {
 		this.preQueue = preQueue;
 		this.FIFOQueue = FIFOQueue;
 		addPreQueueToQueue();
@@ -14,17 +15,13 @@ class QueueManager {
 
 	
 	private void shuffle() {
-		List<ClientDetails> tempList = new ArrayList<ClientDetails>(preQueue);
-		Collections.shuffle(tempList);
-		preQueue.clear();
-		preQueue.addAll(tempList);
-
+		Collections.shuffle(preQueue);
 	}
 
 	private void addPreQueueToQueue() {
 		shuffle();
 		for (int i = 0; i < preQueue.size(); i++) {
-			FIFOQueue.add(preQueue.remove());
+			FIFOQueue.add(preQueue.remove(i));
 		}
 
 	}
