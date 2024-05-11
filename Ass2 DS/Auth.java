@@ -1,6 +1,7 @@
 import java.net.*;
 import java.util.HashMap;
 import java.io.*;
+import java.util.ArrayList;
 
 public class Auth extends Thread{
     HashMap<String,String> database;
@@ -11,19 +12,21 @@ public class Auth extends Thread{
     String output ;
 	boolean authenticated=false;
     ClientDetails tempClient;
+    ArrayList<ClientDetails> preQueue;
     Socket clientSocket;
-    public Auth(Socket aClientSocket, ServerSocket aServerSocket, HashMap<String,String> aDatabase){
+    public Auth(Socket aClientSocket, ServerSocket aServerSocket, HashMap<String,String> aDatabase, ArrayList<ClientDetails> apreQueue){
         try{
         System.out.println("Starting Auth Process..");
         database = aDatabase;
         serverSocket = aServerSocket;
         clientSocket = aClientSocket;
+        preQueue = apreQueue;
         in = new DataInputStream(clientSocket.getInputStream());
         out = new DataOutputStream(clientSocket.getOutputStream());
-        this.start();
         }catch(IOException e ){System.out.println(e.getMessage());}
 
     }
+    public Auth(){}
     
     public String processMessage(String msg) {
         System.out.println("Processing Message...");
@@ -49,6 +52,7 @@ public class Auth extends Thread{
             database.put(tempClient.getUsername(), tempClient.getPassword());
             ClientDatabase.add(tempClient);
             return ("ADDED TO DATABASE");
+            
         }
         else {
             return ("SIGN UP FAILED. USERNAME ALREADY EXISTS.");
@@ -57,6 +61,16 @@ public class Auth extends Thread{
 
     public String logIn() {
         if(authenticate()) {
+            if (tempClient.getStep() == 0) {
+                    preQueue.add(tempClient);
+                    // try {
+					// 	currentThread().join();
+					// } catch (InterruptedException e) {
+					// 	// TODO Auto-generated catch block
+					// 	e.printStackTrace();
+					// }
+                     // Thread.sleep(3000);
+             }
             ClientDatabase.updateSocketIfExists(tempClient.getUsername(), clientSocket);
             return ("Login successful for: " + tempClient.getUsername());
         }
@@ -75,17 +89,17 @@ public class Auth extends Thread{
         try{
         String msg = in.readUTF();
         String method = processMessage(msg);
-        String output;
+        String output = "";
         
         if(method.equals("SIGNUP"))
             output = signUp();
-
         else if (method.equals("LOGIN")) 
             output = logIn();
-
         else
             output=("Invalid method");
+
         out.writeUTF(output);
+       
             
         }catch(EOFException e){System.out.println(e.getMessage());
         }catch(IOException e){ System.out.println(e.getMessage());

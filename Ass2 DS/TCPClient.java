@@ -45,23 +45,18 @@ public class TCPClient {
 
             else if(methods.equals("LOGIN")){
             out.writeUTF("LOGIN"+"@"+ usernames+ "@"+encryptedPass);
-            while(true){
             String reply= in.readUTF().toString();
             System.out.println(reply);
-            if(reply.equals("Login successful for username: "+usernames)){
-                // System.out.println(msg);
-              System.out.print("Enter message for event:");
-              String echo =  s.nextLine();
-              out.writeUTF(echo);
-              System.out.println(in.readUTF());}}}
+            while(true){
+  
+              
+
+              System.out.println(in.readUTF());}
+            }
+            
 
 
-        //    else if(methods.equals("RECONNECT")){
-        //         out.writeUTF("RECONNECT"+"@"+ usernames+ "@"+encryptedPass);
-        //         System.out.print(in.readUTF());
-        //         Thread.sleep(2000);
-        //         System.out.print(in.readUTF());
-        //     }
+  
             s.close();
         // }
          } catch (UnknownHostException e) {
