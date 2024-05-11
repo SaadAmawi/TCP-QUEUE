@@ -14,7 +14,7 @@ public class TCPServer {
     public static void main(String[] args) throws IOException {
         ArrayList<ClientDetails> preQueue = new ArrayList<>();
         Queue<ClientDetails> FIFOQueue = new LinkedList<>();
-        long startTime = System.currentTimeMillis() + 10000;
+        long startTime = System.currentTimeMillis() + 30000;
         int serverPort = 6789;
         Scheduler scheduler = new Scheduler(startTime, preQueue, FIFOQueue);
 
@@ -54,8 +54,10 @@ public class TCPServer {
                 }
                 System.out.println("Event starting...");
                 QueueManager queueManager = new QueueManager(preQueue, FIFOQueue);
+                int clientNum = 1;
                 while (!FIFOQueue.isEmpty()) {
-                    Event e = new Event(FIFOQueue.remove());
+                    System.out.println("client num: " + clientNum + ": " + FIFOQueue.element().getUsername());
+                    //Event e = new Event(FIFOQueue.remove());
                 }
             } catch (InterruptedException e) {
                 System.out.println("opkpokl;" + e.getMessage());

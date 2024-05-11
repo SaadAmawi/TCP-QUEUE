@@ -47,13 +47,26 @@ public class TCPClient {
             out.writeUTF("LOGIN"+"@"+ usernames+ "@"+encryptedPass);
             String reply= in.readUTF().toString();
             System.out.println(reply);
-            while(true){
-  
-              
-
-              System.out.println(in.readUTF());}
-            }
+            while(true) {
+                String serverMessage = in.readUTF();  // Read once at the start of the loop
+                // System.out.println("Server says: " + serverMessage);
             
+                if (serverMessage.equals("Please Select a Seat")) {
+                    System.out.print("\n\n-----Select a seat!-----\n CHOICE: ");
+                    String seatChoice = s.nextLine();
+                    out.writeUTF(seatChoice);
+                    out.flush();
+                    System.out.println(in.readUTF());  // Confirm seat selection
+                } else if (serverMessage.equals("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)")) {
+                    System.out.print("\n\n-----Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)-----\nCHOICE: ");
+                    String levelChoice = s.nextLine();
+                    out.writeUTF(levelChoice);
+                    out.flush();
+                    System.out.println(in.readUTF());  // Confirm ticket class
+                } else {
+                    System.out.println(serverMessage);  // Handle other or unexpected messages
+                }
+            }}
 
 
   
