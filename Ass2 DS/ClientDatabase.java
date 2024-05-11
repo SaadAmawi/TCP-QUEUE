@@ -1,39 +1,39 @@
 import java.net.Socket;
-import java.util.HashMap;
-
+import java.util.*;
 public class ClientDatabase {
-	static HashMap<String, ClientDetails> clientDb = new HashMap<String, ClientDetails>();
+	static Map<String, ClientDetails> clientDb = new HashMap<String, ClientDetails>();
+	static Map<String, ClientDetails> syncClientDb = Collections.synchronizedMap(clientDb);
 
 	static void add(ClientDetails client) {
-		clientDb.put(client.getUsername(), client);
+		syncClientDb.put(client.getUsername(), client);
 	}
 
 	static void remove(ClientDetails client) {
-		clientDb.remove(client.getUsername());
+		syncClientDb.remove(client.getUsername());
 	}
 
 	static void updateSocket(ClientDetails client, Socket socket){
-		clientDb.get(client.getUsername()).setClientSocket(socket);
+		syncClientDb.get(client.getUsername()).setClientSocket(socket);
 	}
 
 	static boolean exists(String username) {
-		return (clientDb.get(username) != null);
+		return (syncClientDb.get(username) != null);
 	}
 
 	static void updateSocketIfExists(String username, Socket socket) {
 		if (exists(username)) {
-			clientDb.get(username).setClientSocket(socket);
+			syncClientDb.get(username).setClientSocket(socket);
 		}
 	}
 
 	static void updateSocketIfExists(ClientDetails client, Socket socket) {
 		if (exists(client.getUsername())) {
-			clientDb.get(client.getUsername()).setClientSocket(socket);
+			syncClientDb.get(client.getUsername()).setClientSocket(socket);
 		}
 	}
 
 	static ClientDetails getClient(String username) {
-		return clientDb.get(username);
+		return syncClientDb.get(username);
 	}
 }
 
