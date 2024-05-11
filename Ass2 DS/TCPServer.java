@@ -1,23 +1,20 @@
 import java.net.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 import java.io.*;
+import java.util.concurrent.*;
 
 public class TCPServer {
 
-    public static long getStartTime(){
-        return System.currentTimeMillis() + 15000;
-    }
 
     public static void main(String[] args) throws IOException {
         ArrayList<ClientDetails> preQueue = new ArrayList<>();
-        Queue<ClientDetails> FIFOQueue = new LinkedList<>();
-        long startTime = System.currentTimeMillis() + 30000;
+        List<ClientDetails> preQueueSync = Collections.synchronizedList(preQueue);
+        Queue<ClientDetails> FIFOQueue = new ConcurrentLinkedQueue<ClientDetails>();
+        // Queue<ClientDetails> syncFIFOQueue = new ConcurrentLinkedQueue<>();
+        long startTime = System.currentTimeMillis() + (2*30*1000);
         int serverPort = 6789;
-        Scheduler scheduler = new Scheduler(startTime, preQueue, FIFOQueue);
-
+        Scheduler scheduler = new Scheduler(startTime, preQueueSync, FIFOQueue);
+        boolean started=false;
         scheduler.start();
 
         try (ServerSocket listenSocket = new ServerSocket(serverPort)) {
@@ -25,9 +22,21 @@ public class TCPServer {
             System.out.println("Server is running...");
 
             while (true) {
+                started = System.currentTimeMillis() >= startTime;
                 Socket clientSocket = listenSocket.accept();
-                Auth a = new Auth(clientSocket, listenSocket, passDb, preQueue);
+                if(!started){
+                    //run regular routine
+                System.out.println("NEW AUTHENTICATION FROM NOT STARTED");
+                Auth a = new Auth(clientSocket, listenSocket, passDb, preQueueSync);
+                a.start();}
+                else if(started){
+                    //run started routine
+                    System.out.println("NEW AUTHENTICATION FROM STARTED");
+                Auth a = new Auth(clientSocket,listenSocket, passDb,FIFOQueue);
                 a.start();
+                    
+                }
+                
             }
         } catch (IOException e) {
             System.out.println("Exception: " + e.getMessage());
@@ -37,10 +46,10 @@ public class TCPServer {
 
     class Scheduler extends Thread {
         private long startTime;
-        private ArrayList<ClientDetails> preQueue;
+        private List<ClientDetails> preQueue;
         private Queue<ClientDetails> FIFOQueue;
 
-        public Scheduler(long startTime, ArrayList<ClientDetails> preQueue, Queue<ClientDetails> FIFOQueue) {
+        public Scheduler(long startTime, List<ClientDetails> preQueue, Queue<ClientDetails> FIFOQueue) {
             this.startTime = startTime;
             this.preQueue = preQueue;
             this.FIFOQueue = FIFOQueue;
@@ -52,12 +61,27 @@ public class TCPServer {
                     // Wait until it's time to start the event
                     Thread.sleep(startTime - System.currentTimeMillis());
                 }
+                
                 System.out.println("Event starting...");
+            for (ClientDetails client : preQueue) {
+               	System.out.println("client in PreQ: " + client.getUsername());
+               }
                 QueueManager queueManager = new QueueManager(preQueue, FIFOQueue);
-                int clientNum = 1;
-                while (!FIFOQueue.isEmpty()) {
-                    System.out.println("client num: " + clientNum + ": " + FIFOQueue.element().getUsername());
-                    //Event e = new Event(FIFOQueue.remove());
+               for (ClientDetails client : FIFOQueue) {
+               	System.out.println("client in FIFO: " + client.getUsername());
+               }
+
+                while (true) {
+                    if (!FIFOQueue.isEmpty()) {
+                    Event e1 = new Event(FIFOQueue.remove());
+                    e1.join();
+                    if (!FIFOQueue.isEmpty()) {
+                        Event e2 = new Event(FIFOQueue.remove());
+                        e2.join();
+                    }
+
+                    }
+                    
                 }
             } catch (InterruptedException e) {
                 System.out.println("opkpokl;" + e.getMessage());

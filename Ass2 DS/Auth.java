@@ -1,5 +1,5 @@
 import java.net.*;
-import java.util.HashMap;
+import java.util.*;
 import java.io.*;
 import java.util.ArrayList;
 
@@ -13,20 +13,39 @@ public class Auth extends Thread{
 	boolean authenticated=false;
     ClientDetails tempClient;
     ArrayList<ClientDetails> preQueue;
+    Queue<ClientDetails> FIFOQueue;
+    List<ClientDetails> preQ;
     Socket clientSocket;
-    public Auth(Socket aClientSocket, ServerSocket aServerSocket, HashMap<String,String> aDatabase, ArrayList<ClientDetails> apreQueue){
+    boolean started = false;
+    public Auth(Socket aClientSocket, ServerSocket aServerSocket, HashMap<String,String> aDatabase, List<ClientDetails> apreQueue){
         try{
         System.out.println("Starting Auth Process..");
         database = aDatabase;
         serverSocket = aServerSocket;
         clientSocket = aClientSocket;
-        preQueue = apreQueue;
+        preQ = apreQueue;
+        started = false;
         in = new DataInputStream(clientSocket.getInputStream());
         out = new DataOutputStream(clientSocket.getOutputStream());
-        }catch(IOException e ){System.out.println(e.getMessage());}
+        }catch(IOException e ){System.out.println(e.getMessage());
+        }
 
     }
-    public Auth(){}
+
+    public Auth(Socket aClientSocket, ServerSocket aServerSocket, HashMap<String,String> aDatabase, Queue<ClientDetails> aFIFOQueue){
+        try{
+        System.out.println("Starting Auth Process..");
+        database = aDatabase;
+        serverSocket = aServerSocket;
+        clientSocket = aClientSocket;
+        FIFOQueue = aFIFOQueue;
+        started = true;
+        in = new DataInputStream(clientSocket.getInputStream());
+        out = new DataOutputStream(clientSocket.getOutputStream());
+        }catch(IOException e ){System.out.println(e.getMessage());
+        }
+
+    }
     
     public String processMessage(String msg) {
         System.out.println("Processing Message...");
@@ -37,10 +56,11 @@ public class Auth extends Thread{
     }
 
     public boolean authenticate() {
-        System.out.println("Authenticating...");
+        System.out.println("Authenticating..." + tempClient.getUsername());
         if (database.containsKey(tempClient.getUsername())) {
             String storedPassword = database.get(tempClient.getUsername());
             if (storedPassword.equals(tempClient.getPassword())) {
+            	tempClient = ClientDatabase.getClient(tempClient.getUsername());
                 return true;
             }
         }
@@ -60,16 +80,21 @@ public class Auth extends Thread{
     }
 
     public String logIn() {
-        if(authenticate()) {
+        System.out.println("LOGGING " + tempClient.getUsername() + " IN WHILE EVEN STARTED: " + started);
+        if(authenticate() && !started) {
             if (tempClient.getStep() == 0) {
-                    preQueue.add(tempClient);
-                    // try {
-					// 	currentThread().join();
-					// } catch (InterruptedException e) {
-					// 	// TODO Auto-generated catch block
-					// 	e.printStackTrace();
-					// }
-                     // Thread.sleep(3000);
+            		System.out.println("Adding " + tempClient.getUsername() + " to preQ");
+                    preQ.add(tempClient);
+                    ClientDatabase.getClient(tempClient.getUsername()).iterateStep();
+             }
+            ClientDatabase.updateSocketIfExists(tempClient.getUsername(), clientSocket);
+            return ("Login successful for: " + tempClient.getUsername());
+        }
+        else if(authenticate() && started) {
+            if (tempClient.getStep() == 0) {
+            		System.out.println("Adding " + tempClient.getUsername() + " to Q");
+                    FIFOQueue.add(tempClient);
+                    ClientDatabase.getClient(tempClient.getUsername()).iterateStep();
              }
             ClientDatabase.updateSocketIfExists(tempClient.getUsername(), clientSocket);
             return ("Login successful for: " + tempClient.getUsername());

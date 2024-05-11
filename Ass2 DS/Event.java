@@ -19,7 +19,9 @@ public class Event extends Thread{
         out = new DataOutputStream(client.getClientSocket().getOutputStream());
         this.start();
 		System.out.println("EVENT STARTED");
-        }catch(IOException e ){System.out.println("UH OHHHH"+e.getMessage());}
+        }catch(IOException e ){
+            System.out.println("UH OHHHH"+e.getMessage());
+        }
     }
     
     public ArrayList<String> generateSeats(){
@@ -69,6 +71,7 @@ public class Event extends Thread{
     }
 
     void step3() throws IOException, InterruptedException {
+        step1();
         out.writeUTF("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)");
         String choice = in.readUTF();
         if(choice.equals("S") || choice.equals("FC")||choice.equals("VIP")||choice.equals("GC"))
@@ -118,12 +121,15 @@ public class Event extends Thread{
 
     public void waitForClient(boolean dc) {
         while (System.currentTimeMillis() < endTime && dc) {
+            System.out.println("Currently waiting...");
+            System.out.println("The client socket is closed: " + client.getClientSocket().isClosed());
             if (!client.getClientSocket().isClosed()){
                 dc = false;
                 try{
                 in = new DataInputStream(client.getClientSocket().getInputStream());
                 out = new DataOutputStream(client.getClientSocket().getOutputStream());
                 checkStep(client.getStep());
+                System.out.println(client.getStep());
                 }catch (IOException e1) {}
                 catch (InterruptedException e){}
             }
@@ -138,11 +144,18 @@ public class Event extends Thread{
             int currStep = client.getStep();
             checkStep(currStep);
         }
-        catch(EOFException e){System.out.println("sadknajsd "+e.getMessage());}
+        catch(EOFException e){System.out.println("Error: "+e.getMessage());
+    }
         //if client disconnects
         catch(IOException e) {
             System.out.println("Event Waiting... "+e.getMessage());
-            waitForClient(true);
+            try {
+                client.getClientSocket().close();
+                waitForClient(true);
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
         }catch (InterruptedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

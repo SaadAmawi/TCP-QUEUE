@@ -48,23 +48,21 @@ public class TCPClient {
             String reply= in.readUTF().toString();
             System.out.println(reply);
             while(true) {
-                String serverMessage = in.readUTF();  // Read once at the start of the loop
-                // System.out.println("Server says: " + serverMessage);
-            
+                String serverMessage = in.readUTF();  
                 if (serverMessage.equals("Please Select a Seat")) {
                     System.out.print("\n\n-----Select a seat!-----\n CHOICE: ");
                     String seatChoice = s.nextLine();
                     out.writeUTF(seatChoice);
                     out.flush();
-                    System.out.println(in.readUTF());  // Confirm seat selection
+                    System.out.println(in.readUTF());  
                 } else if (serverMessage.equals("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)")) {
                     System.out.print("\n\n-----Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)-----\nCHOICE: ");
                     String levelChoice = s.nextLine();
                     out.writeUTF(levelChoice);
                     out.flush();
-                    System.out.println(in.readUTF());  // Confirm ticket class
+                    System.out.println(in.readUTF());  
                 } else {
-                    System.out.println(serverMessage);  // Handle other or unexpected messages
+                    System.out.println(serverMessage);  
                 }
             }}
 
