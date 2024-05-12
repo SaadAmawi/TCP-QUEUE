@@ -1,90 +1,89 @@
-import java.net.*; import java.io.*;
-import java.util.ArrayList;
-public class Event extends Thread{
+import java.net.*;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+public class Event extends Thread {
     DataInputStream in;
     DataOutputStream out;
-    // Socket clientSocket;
-    // String clientUsername;
-    long endTime = System.currentTimeMillis() + (3*60*1000);
-    long stepTime = System.currentTimeMillis() + (3*60*1000);
+    long endTime = System.currentTimeMillis() + (3 * 60 * 1000);
+    long stepTime = System.currentTimeMillis() + (3 * 60 * 1000);
     ClientDetails client;
-    ArrayList<String> seats = generateSeats();
-    String ticketClass=null;
+    List<String> seats = null;
+    String ticketClass = null;
     String seatChoice = null;
 
-    public Event(ClientDetails aClient){
-        try{
-        client = aClient;
-        in = new DataInputStream(client.getClientSocket().getInputStream());
-        out = new DataOutputStream(client.getClientSocket().getOutputStream());
-        this.start();
-		System.out.println("EVENT STARTED");
-        }catch(IOException e ){
-            System.out.println("UH OHHHH"+e.getMessage());
+    // Constructor to initialize the event with a client
+    public Event(ClientDetails aClient,List<String>seats) {
+        try {
+            client = aClient;
+            this.seats = seats;
+            // Initialize input and output streams with client's socket
+            in = new DataInputStream(client.getClientSocket().getInputStream());
+            out = new DataOutputStream(client.getClientSocket().getOutputStream());
+            // Start the event as a thread
+            this.start();
+            System.out.println("EVENT STARTED");
+        } catch (IOException e) {
+            System.out.println("UH OHHHH" + e.getMessage());
         }
     }
-    
-    public ArrayList<String> generateSeats(){
-        int count ;
-        ArrayList<String> seats = new ArrayList<String>(){};
-
-        char[] letters = new char[10];
-        for (int i = 0; i < letters.length; i++) {
-            letters[i] = (char) ('A' + i);
-        };
-        int[] nums = new int[]{1,2,3,4,5,6,7,8,9};
-        for(count = 0; count<letters.length;count++){
-            for(int j=0; j<nums.length; j++){
-                seats.add(letters[count]+""+nums[j]);
-            }
-        }
-        return seats;
-    }
+    String RED = "\u001B[31m";
+    String GREEN = "\u001B[32m";
+    String BLUE = "\u001B[34m";
+   
+   
 
     void step1() throws IOException, InterruptedException {
-        String sets =new String("AVAILALE SEATS: ");
+        String sets = new String("AVAILABLE SEATS: ");
         for (String c : seats)
-        sets+="["+c+"]"+" ";
+            sets += "[" + c + "]" + " ";
         out.writeUTF(sets);
         out.flush();
-        client.iterateStep(); 
+        client.iterateStep();
         Thread.sleep(5000);
         step2();
     }
-        
-        void step2() throws IOException,InterruptedException {
+
+    // Step 2: Ask the client to select a seat
+    void step2() throws IOException, InterruptedException {
         out.writeUTF("Please Select a Seat");
         out.flush();
         String reply = in.readUTF();
-        if(reply!=null && seats.contains(reply) ){
+        if (reply != null && seats.contains(reply)) {
             seats.remove(reply);
-            out.writeUTF("Selection Confirmed!");
+            out.writeUTF(GREEN+"Selection Confirmed!");
             out.flush();
-           seatChoice = reply;
+            seatChoice = reply;
+        }else{
+            out.writeUTF(RED+"Selection Not Available, Please Select Another Seat");
+            step2();
         }
-        
-   
-        client.iterateStep(); 
+        client.iterateStep();
         Thread.sleep(1000);
-
         step3();
     }
 
+    // Step 3: Ask the client to choose a ticket class
     void step3() throws IOException, InterruptedException {
-        step1();
         out.writeUTF("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)");
         String choice = in.readUTF();
-        if(choice.equals("S") || choice.equals("FC")||choice.equals("VIP")||choice.equals("GC"))
-        ticketClass = choice;
-        out.writeUTF("Selection Confirmed");
+        if (choice.equals("S") || choice.equals("FC") || choice.equals("VIP") || choice.equals("GC")){
+            ticketClass = choice;}
+            else{
+                out.writeUTF(RED+"Please Select One Of The Mentioned Ticket Classes");
+                step3();
+            }
+        out.writeUTF(GREEN+"Selection Confirmed");
         out.flush();
-        client.iterateStep(); 
+        client.iterateStep();
         Thread.sleep(1000);
         step4();
     }
 
+    // Step 4: Display ticket reservation details and close client socket
     void step4() throws IOException {
-        out.writeUTF("\n\n---------Ticket Reservation Completed Successfully--------- \n--------------------------Details-------------------------- \n Seat: "+seatChoice+"\n Ticket Class: "+ticketClass);
+       
+        out.writeUTF(BLUE+"\n\n---------Ticket Reservation Completed Successfully--------- \n--------------------------Details-------------------------- \n Seat: " + seatChoice + "\n Ticket Class: " + ticketClass+"\n-----------------------------------------------------------");
         out.flush();
         client.reset();
         try {
@@ -94,77 +93,70 @@ public class Event extends Thread{
         }
     }
 
+    // Check the current step and execute corresponding method
     public void checkStep(int currStep) throws IOException, InterruptedException {
         switch (currStep) {
             case 1:
-                step1(); 
+                step1();
                 break;
             case 2:
-                step2(); 
+                step2();
                 break;
             case 3:
-                step3(); 
+                step3();
                 break;
             case 4:
-                step4(); 
+                step4();
                 break;
             default:
                 out.writeUTF("Unknown step. Starting from step 1.");
                 step1(); // Default to step 1 if the step is unknown
                 break;
-            }
+        }
     }
 
-    // public void waitForTen() {
-    //     while (System.currentTimeMillis() < )
-    // }
-
+    // Wait for the client to reconnect or until the event ends
     public void waitForClient(boolean dc) {
         while (System.currentTimeMillis() < endTime && dc) {
             System.out.println("Currently waiting...");
             System.out.println("The client socket is closed: " + client.getClientSocket().isClosed());
-            if (!client.getClientSocket().isClosed()){
+            if (!client.getClientSocket().isClosed()) {
                 dc = false;
-                try{
-                in = new DataInputStream(client.getClientSocket().getInputStream());
-                out = new DataOutputStream(client.getClientSocket().getOutputStream());
-                checkStep(client.getStep());
-                System.out.println(client.getStep());
-                }catch (IOException e1) {}
-                catch (InterruptedException e){}
+                try {
+                    in = new DataInputStream(client.getClientSocket().getInputStream());
+                    out = new DataOutputStream(client.getClientSocket().getOutputStream());
+                    checkStep(client.getStep());
+                    System.out.println(client.getStep());
+                } catch (IOException e1) {
+                } catch (InterruptedException e) {
+                }
             }
         }
     }
-        
-  
 
-   
-    public void run(){
-        try{
+    // Thread's run method to execute event steps
+    public void run() {
+        try {
             int currStep = client.getStep();
             checkStep(currStep);
-        }
-        catch(EOFException e){System.out.println("Error: "+e.getMessage());
-    }
-        //if client disconnects
-        catch(IOException e) {
-            System.out.println("Event Waiting... "+e.getMessage());
+        } catch (EOFException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Event Waiting... " + e.getMessage());
             try {
                 client.getClientSocket().close();
                 waitForClient(true);
             } catch (IOException e1) {
-                // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
-        }catch (InterruptedException e) {
-            // TODO Auto-generated catch block
+        } catch (InterruptedException e) {
             e.printStackTrace();
-        }
-        finally {
-            try{
-                client.getClientSocket().close();    
-            }catch(IOException e ){System.out.println(e.getMessage());
+        } finally {
+            try {
+                client.getClientSocket().close();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
             }
-}
-}
+        }
+    }
 }
