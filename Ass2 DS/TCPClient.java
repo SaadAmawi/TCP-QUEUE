@@ -6,89 +6,114 @@ import java.security.spec.*;
 import java.security.*;
 import java.util.Scanner;
 
-
 public class TCPClient {
-    public static void main(String[] args) throws InterruptedException {
-        
+    public static void main(String[] args) {
+        // Initialize variables
+        //args[0]: ip address of loadbalancer
+        //args[1]: port of loadbalancer
         Socket socket = null;
-        Scanner s = new Scanner(System.in);
-        // long start = TCPServer.getStartTime();
+        Socket lbSocket = null;
+        Scanner scanner = new Scanner(System.in);
+        int serverPort = 0;
+        int lbPort = 22222;
+        String lbAddress = args[0];
+        String hostname = "";
+        boolean receivedFromLB = false;
+        boolean strongPass = false;
+        String password=null;
 
-        try{
-            int serverPort = 6789;
-            String hostname = args[0];
+        try {
+            //Get server details from LB
+            lbSocket = new Socket(lbAddress, lbPort);
+            DataInputStream inLb = new DataInputStream(lbSocket.getInputStream());
+            
+            String serverDetails[] = (inLb.readUTF()).split("@");
+            hostname = serverDetails[0];
+            serverPort = Integer.parseInt(serverDetails[1]);
+            lbSocket.close();
+
+            // Establish connection to server
             socket = new Socket(hostname, serverPort);
             DataInputStream in = new DataInputStream(socket.getInputStream());
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-            // String username = args[1];
-            // String password = args[2];
-            // String method = args[3];
-            // String msg = args[4];
-            
-            // while(true){
+
+            // Prompt user for authentication method
             System.out.println("PLEASE CHOOSE SIGNUP OR LOGIN");
-            String methods = s.nextLine();
+            String method = scanner.nextLine();
             System.out.println("Please Enter Username and Password: ");
             System.out.print("Username: ");
-            String usernames = s.nextLine();
+            String username = scanner.nextLine();
+            while(!strongPass){
             System.out.print("Password: ");
-            String passwords = s.nextLine();
-            SecretKeySpec secretKeySpec = SecurityUtil.generateAESKey();
-            Cipher cipher = Cipher.getInstance("AES");
-            String encryptedPass = SecurityUtil.encrypt(passwords, cipher, secretKeySpec);
-
-            if(methods.equals("SIGNUP")){
-            out.writeUTF("SIGNUP"+"@"+ usernames+ "@"+encryptedPass);
-            System.out.println(in.readUTF());
+             password = scanner.nextLine();
+            if(password.matches("(?=.*\\d)(?=.*\\p{Lu}).*")&& password.length()>=8){
+                strongPass=true;
+            }
             }
 
 
-            else if(methods.equals("LOGIN")){
-            out.writeUTF("LOGIN"+"@"+ usernames+ "@"+encryptedPass);
-            String reply= in.readUTF().toString();
-            System.out.println(reply);
-            while(true) {
-                String serverMessage = in.readUTF();  
-                if (serverMessage.equals("Please Select a Seat")) {
-                    System.out.print("\n\n-----Select a seat!-----\n CHOICE: ");
-                    String seatChoice = s.nextLine();
-                    out.writeUTF(seatChoice);
-                    out.flush();
-                    System.out.println(in.readUTF());  
-                } else if (serverMessage.equals("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)")) {
-                    System.out.print("\n\n-----Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)-----\nCHOICE: ");
-                    String levelChoice = s.nextLine();
-                    out.writeUTF(levelChoice);
-                    out.flush();
-                    System.out.println(in.readUTF());  
-                } else {
-                    System.out.println(serverMessage);  
+            // Encrypt password using AES encryption
+            SecretKeySpec secretKeySpec = SecurityUtil.generateAESKey();
+            Cipher cipher = Cipher.getInstance("AES");
+            String encryptedPassword = SecurityUtil.encrypt(password, cipher, secretKeySpec);
+            String YELLOW = "\u001B[33m";
+
+            // Send authentication data to server based on whether the method was signup or login
+            if (method.equals("SIGNUP")) {
+                out.writeUTF("SIGNUP@" + username + "@" + encryptedPassword);
+                System.out.println(in.readUTF());
+            } else if (method.equals("LOGIN")) {
+                out.writeUTF("LOGIN@" + username + "@" + encryptedPassword);
+                String reply = in.readUTF();
+                System.out.println(reply);
+
+                // Handle continuous server messages and respond based on message received 
+                while (true) {
+                    String serverMessage = in.readUTF();
+                    if (serverMessage.equals("Please Select a Seat")) {
+                        System.out.print(YELLOW+"\n\n-----Select a seat!-----\n CHOICE: ");
+                        if(scanner.hasNextLine()){
+                        String seatChoice = scanner.nextLine();
+                        out.writeUTF(seatChoice);
+                        out.flush();}
+                        if(serverMessage.equals("Selection Confirmed!"))
+                        System.out.println("Seat Selection Confirmed!");
+                        
+                        
+                        
+                    } else if (serverMessage.equals("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)")) {
+                        System.out.print(YELLOW+"\n\n-----Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)-----\nCHOICE: ");
+                        if(scanner.hasNextLine()){
+                        String ticketClass = scanner.nextLine();
+                        out.writeUTF(ticketClass);
+                        out.flush();}
+                        if(serverMessage.equals("Selection Confirmed"))
+                        System.out.println("Ticket Class Selection Confirmed!");
+                      
+                       
+                    } else {
+                        System.out.println(serverMessage);
+                    }
                 }
-            }}
-
-
-  
-            s.close();
-        // }
-         } catch (UnknownHostException e) {
-            System.out.println("Error Socket:" + e.getMessage());
+            }
+        } catch (UnknownHostException e) {
+            System.out.println("Socket error: " + e.getMessage());
         } catch (EOFException e) {
-            System.out.println("Error EOF:" + e.getMessage());
+            System.out.println("EOF error: " + e.getMessage());
         } catch (IOException e) {
-            System.out.println("Error readline:" + e.getMessage());
+            System.out.println("IO error: " + e.getMessage());
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
         } finally {
+            // Close resources cleanly
             if (socket != null) {
                 try {
                     socket.close();
                 } catch (IOException e) {
-                    System.out.println("Error close:" + e.getMessage());
+                    System.out.println("Socket close error: " + e.getMessage());
                 }
             }
+            scanner.close();
         }
     }
 }
-
-
-
