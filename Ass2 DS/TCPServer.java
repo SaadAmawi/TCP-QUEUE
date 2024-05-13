@@ -11,12 +11,13 @@ public class TCPServer {
         ArrayList<ClientDetails> preQueue = new ArrayList<>();
         List<ClientDetails> preQueueSync = Collections.synchronizedList(preQueue);
         Queue<ClientDetails> FIFOQueue = new ConcurrentLinkedQueue<ClientDetails>();
-        long startTime = System.currentTimeMillis() + (60*1000);
+        long startTime = System.currentTimeMillis() + (1*20*1000);
         int serverPort = 6789;
         Auth a=null;
         Scheduler scheduler = new Scheduler(startTime, preQueueSync, FIFOQueue);
         boolean started=false;
         scheduler.start();
+        
 
         try (ServerSocket listenSocket = new ServerSocket(serverPort)) {
             HashMap<String, String> passDb = new HashMap<>();
@@ -37,10 +38,6 @@ public class TCPServer {
                 a.start();
                     
                 }
-                // LinkedList<ClientDetails> FIFOQueueCopy = new LinkedList<ClientDetails>(FIFOQueue);
-                // while(FIFOQueueCopy.size()>=0){
-                // a.findUser(FIFOQueueCopy.remove());
-                // }
             }
         } catch (IOException e) {
             System.out.println("Exception: " + e.getMessage());
@@ -52,16 +49,11 @@ public class TCPServer {
         private long startTime;
         private List<ClientDetails> preQueue;
         private Queue<ClientDetails> FIFOQueue;
-
+        FileWriter timer = null;
         List<String> seats = Collections.synchronizedList(generateSeats());
+        // List<String> seats = new ArrayList<String>(generateSeats());
 
         public Scheduler(long startTime, List<ClientDetails> preQueue, Queue<ClientDetails> FIFOQueue) {
-           // try {
-            //     QueueTimer qt = new QueueTimer(FIFOQueue);
-            // } catch (IOException e) {
-            //     // TODO Auto-generated catch block
-            //     e.printStackTrace();
-            // }
             this.startTime = startTime;
             this.preQueue = preQueue;
             this.FIFOQueue = FIFOQueue;
@@ -90,6 +82,8 @@ public class TCPServer {
                     // Wait until it's time to start the event
                     Thread.sleep(startTime - System.currentTimeMillis());
                 }
+                long timeWhenStarted = System.currentTimeMillis();
+                int eventCount = 0;
                 
                 System.out.println("Event starting...");
             for (ClientDetails client : preQueue) {
@@ -101,24 +95,55 @@ public class TCPServer {
                while(qI.hasNext()) {
                 ClientDetails client = qI.next();
                	DataOutputStream dos = new DataOutputStream(client.getClientSocket().getOutputStream());
-                dos.writeUTF("Current Position in Q: "+counter+" Time Remaining: "+counter *15+" Minutes");
+                dos.writeUTF("Current Position in Q: "+counter+" Time Remaining: "+counter*2+" Minutes");
                 counter++;
                }
+               
+
+               timer = new FileWriter("timer.txt",true);
 
                 while (true) {
                     if (!FIFOQueue.isEmpty()) {
                     Event e1 = new Event(FIFOQueue.remove(), seats);
+                    eventCount++;
                     if (!FIFOQueue.isEmpty()) {
                         Event e2 = new Event(FIFOQueue.remove(), seats);
+                        eventCount++;
                         e2.join();
                     }
                     e1.join();
 
                     }
-                    
+                    // int loopCount=0;
+                    //FOR TESTING PURPOSES ONLY!
+                    // if(eventCount>=10) {
+                    // System.out.println("CLIENT COUNT" + eventCount);
+                    //     long timeTaken = System.currentTimeMillis()-timeWhenStarted;
+                    // System.out.println("CLIENT COUNT" + timeTaken);
+                    //     timer.write("TIME TAKEN FOR 10 CLIENTS WAS: "+(int)(timeTaken) + "\n");
+                    //     timer.flush();
+                    //     // timer.close();
+                    //     eventCount=0;
+                    //     loopCount++;
+                    //     if(loopCount>=4){
+                    //     break;}
+                       
+                    // }
+                    if(eventCount>=1) {
+                    System.out.println("CLIENT COUNT" + eventCount);
+                        long timeTaken = System.currentTimeMillis()-timeWhenStarted;
+                    System.out.println("CLIENT COUNT" + timeTaken);
+                        timer.write("\nTIME TAKEN FOR 10 CLIENTS WAS: "+(int)(timeTaken) + "\n");
+                        timer.flush();
+                        timer.close();
+                       
+                        break;
+                       
+                    }
+                    // timer.close();
                 }
             } catch (InterruptedException e) {
-                System.out.println("opkpokl;" + e.getMessage());
+                System.out.println("Interrupted: " + e.getMessage());
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -126,32 +151,3 @@ public class TCPServer {
         }
     }
 
-//     class QueueTimer extends Thread {
-//         DataOutputStream clientOS = null; 
-//         Queue<ClientDetails> FIFOQueue = null;
-//         QueueTimer (Queue<ClientDetails> aFIFOQueue) throws IOException {
-//             FIFOQueue = aFIFOQueue;
-//             start();
-
-//         }
-//         public void run() {
-//                         while (true) {
-//                             Iterator<ClientDetails> queueIterator = FIFOQueue.iterator();
-//                             int counter = 0;
-//                 while(queueIterator.hasNext()) {
-//                     try {
-//                         ClientDetails client = queueIterator.next();
-//                         clientOS = new DataOutputStream(client.getClientSocket().getOutputStream());
-//                         System.out.println(client.getUsername());
-//                         clientOS.writeUTF("APPROX " + 15*counter++ + " Minutes Remaining");
-//                         Thread.sleep(30*1000);
-//                     } catch (IOException | InterruptedException e) {
-//                         // TODO Auto-generated catch block
-//                         e.printStackTrace();
-                
-                
-//                 }
-//             }
-//         }
-//     }
-// }
