@@ -7,6 +7,7 @@ public class Event extends Thread {
     DataOutputStream out;
     long endTime = System.currentTimeMillis() + (3 * 60 * 1000);
     long stepTime = System.currentTimeMillis() + (3 * 60 * 1000);
+    long eventEndTime = System.currentTimeMillis() + (1 * 7 * 1000);
     ClientDetails client;
     List<String> seats = null;
     String ticketClass = null;
@@ -30,6 +31,7 @@ public class Event extends Thread {
     String RED = "\u001B[31m";
     String GREEN = "\u001B[32m";
     String BLUE = "\u001B[34m";
+    String WHITE = "\u001B[37m";
    
    
 
@@ -40,7 +42,7 @@ public class Event extends Thread {
         out.writeUTF(sets);
         out.flush();
         client.iterateStep();
-        Thread.sleep(5000);
+        // Thread.sleep(5000);
         step2();
     }
 
@@ -59,7 +61,7 @@ public class Event extends Thread {
             step2();
         }
         client.iterateStep();
-        Thread.sleep(1000);
+        // Thread.sleep(1000);
         step3();
     }
 
@@ -83,14 +85,11 @@ public class Event extends Thread {
     // Step 4: Display ticket reservation details and close client socket
     void step4() throws IOException {
        
-        out.writeUTF(BLUE+"\n\n---------Ticket Reservation Completed Successfully--------- \n--------------------------Details-------------------------- \n Seat: " + seatChoice + "\n Ticket Class: " + ticketClass+"\n-----------------------------------------------------------");
+        out.writeUTF(BLUE+"\n\n---------Ticket Reservation Completed Successfully--------- \n--------------------------Details-------------------------- \n Seat: " + seatChoice + "\n Ticket Class: " + ticketClass+"\n-----------------------------------------------------------"+WHITE);
         out.flush();
         client.reset();
-        try {
-            client.getClientSocket().close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Thread.currentThread().interrupt();
+        return;
     }
 
     // Check the current step and execute corresponding method
@@ -116,8 +115,9 @@ public class Event extends Thread {
     }
 
     // Wait for the client to reconnect or until the event ends
-    public void waitForClient(boolean dc) {
+    public void waitForClient(boolean dc) throws InterruptedException , InterruptedException {
         while (System.currentTimeMillis() < endTime && dc) {
+            Thread.sleep(2000);
             System.out.println("Currently waiting...");
             System.out.println("The client socket is closed: " + client.getClientSocket().isClosed());
             if (!client.getClientSocket().isClosed()) {
@@ -136,17 +136,20 @@ public class Event extends Thread {
 
     // Thread's run method to execute event steps
     public void run() {
+        while(System.currentTimeMillis()<=eventEndTime){
         try {
             int currStep = client.getStep();
             checkStep(currStep);
         } catch (EOFException e) {
-            System.out.println("Error: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("Event Waiting... " + e.getMessage());
             try {
-                client.getClientSocket().close();
                 waitForClient(true);
+                client.getClientSocket().close();
             } catch (IOException e1) {
+                e1.printStackTrace();
+            } catch (InterruptedException e1) {
+                // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
         } catch (InterruptedException e) {
@@ -159,4 +162,20 @@ public class Event extends Thread {
             }
         }
     }
+   
+    try{
+        out.writeUTF("EVENT IS OVER...");
+        
+    }finally{
+        try {
+            client.getClientSocket().close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        Thread.currentThread().interrupt();
+        return;
+    }
+}
+
 }

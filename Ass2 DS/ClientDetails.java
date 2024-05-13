@@ -21,11 +21,17 @@ class ClientDetails {
 
     // Method to reset client details
     void reset() {
+        try{
+        clientSocket.close();
+        }
+        catch (Exception e){}
         clientSocket = null;
         eventStep = 0;
         eventInfo = "";
         isReconnecting = false;
     }
+
+
 
     // Method to check if the client is reconnecting
     boolean isReconnecting() {

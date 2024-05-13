@@ -6,11 +6,19 @@ import java.security.spec.*;
 import java.security.*;
 import java.util.Scanner;
 
-public class TCPClient {
+public class ClientAuto {
     public static void main(String[] args) {
+        
         // Initialize variables
+        //Auto pass 0-3 on signup
+        //Auto pass 0-5 on login
         //args[0]: ip address of loadbalancer
-        //args[1]: port of loadbalancer
+        //args[1]: method
+        //args[2]: username
+        //args[3]: password
+        //args[4]: Seat Choice
+        //args[5]: Ticket Class Choice
+
         Socket socket = null;
         Socket lbSocket = null;
         Scanner scanner = new Scanner(System.in);
@@ -20,8 +28,13 @@ public class TCPClient {
         String hostname = "";
         boolean receivedFromLB = false;
         boolean strongPass = false;
-        String password=null;
-        long startTime = System.currentTimeMillis();
+        long  startTime = System.currentTimeMillis();
+        long eventEndTime;
+        long signupEndTime;
+        for (String s : args) {
+            System.out.println(s);
+        }
+        
 
         try {
             //Get server details from LB
@@ -44,23 +57,13 @@ public class TCPClient {
 
             // Prompt user for authentication method
             System.out.println("PLEASE CHOOSE SIGNUP OR LOGIN");
-            String method = scanner.nextLine();
+            String method = args[1];
             System.out.println("Please Enter Username and Password: ");
             System.out.print("Username: ");
-            String username = scanner.nextLine();
-            if(method.equals("LOGIN")){
-                System.out.print(WHITE+"Password: ");
-                password = scanner.nextLine();
-            }else if(method.equals("SIGNUP")){
-            while(!strongPass){
-                System.out.print(WHITE+"Please Enter A Password That Contains Atleast\n- 1 Uppercase Letter\n- 1 Lowercase Letter\n- 1 Number\n- 8 Characters or longer\nEnter new Password: ");
-                password = scanner.nextLine();
-                if(password.matches("(?=.*\\d)(?=.*\\p{Lu}).*")&& password.length()>=8){
-                    strongPass=true;}
-                else
-                    System.out.println(RED+"Password too weak.");
-            }
-        }
+            String username = args[2];
+            System.out.print("Password: ");
+            String password = args[3];
+
 
 
             // Encrypt password using AES encryption
@@ -83,10 +86,10 @@ public class TCPClient {
                     String serverMessage = in.readUTF();
                     if (serverMessage.equals("Please Select a Seat")) {
                         System.out.print(YELLOW+"\n\n-----Select a seat!-----\n CHOICE: ");
-                        if(scanner.hasNextLine()){
-                        String seatChoice = scanner.nextLine();
+                        String seatChoice = args[4];
+
                         out.writeUTF(seatChoice);
-                        out.flush();}
+                        out.flush();
                         if(serverMessage.equals("Selection Confirmed!"))
                         System.out.println("Seat Selection Confirmed!");
                         
@@ -94,10 +97,10 @@ public class TCPClient {
                         
                     } else if (serverMessage.equals("Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)")) {
                         System.out.print(YELLOW+"\n\n-----Choose Ticket Class: Standard(S), First Class(FC), VIP(VIP), Golden Circle(GC)-----\nCHOICE: ");
-                        if(scanner.hasNextLine()){
-                        String ticketClass = scanner.nextLine();
+                        String ticketClass = args[5];
+
                         out.writeUTF(ticketClass);
-                        out.flush();}
+                        out.flush();
                         if(serverMessage.equals("Selection Confirmed"))
                         System.out.println("Ticket Class Selection Confirmed!");
                       

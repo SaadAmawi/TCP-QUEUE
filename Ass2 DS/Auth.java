@@ -48,7 +48,12 @@ public class Auth extends Thread {
         }
     }
     
-   
+    String RED = "\u001B[31m";
+    String GREEN = "\u001B[32m";
+    String BLUE = "\u001B[34m";
+    String WHITE = "\u001B[37m";
+
+
     // Method to process the incoming message
     public String processMessage(String msg) {
         System.out.println("Processing Message...");
@@ -76,9 +81,9 @@ public class Auth extends Thread {
         if (!ClientDatabase.exists(tempClient.getUsername())) {
             database.put(tempClient.getUsername(), tempClient.getPassword());
             ClientDatabase.add(tempClient);
-            return ("ADDED TO DATABASE");
+            return (GREEN+"ADDED TO DATABASE"+WHITE);
         } else {
-            return ("SIGN UP FAILED. USERNAME ALREADY EXISTS.");
+            return (RED+"SIGN UP FAILED. USERNAME ALREADY EXISTS."+WHITE);
         }
     }
 
@@ -93,7 +98,7 @@ public class Auth extends Thread {
             }
             ClientDatabase.updateSocketIfExists(tempClient.getUsername(), clientSocket);
             
-            return ("Login successful for: " + tempClient.getUsername());
+            return (GREEN+"Login successful for: " + tempClient.getUsername());
         } else if (authenticate() && started) {
             if (tempClient.getStep() == 0) {
                 System.out.println("Adding " + tempClient.getUsername() + " to Q");
@@ -101,9 +106,9 @@ public class Auth extends Thread {
                 ClientDatabase.getClient(tempClient.getUsername()).iterateStep();
             }
             ClientDatabase.updateSocketIfExists(tempClient.getUsername(), clientSocket);
-            return ("Login successful for: " + tempClient.getUsername());
+            return (GREEN+"Login successful for: " + tempClient.getUsername()+WHITE);
         } else {
-            return ("Login failed. One or more of your credentials is incorrect.");
+            return (RED+"Login failed. One or more of your credentials is incorrect."+WHITE);
         }
     }
 
